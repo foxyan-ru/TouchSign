@@ -1,0 +1,86 @@
+name: "TouchSign"
+description: >
+  Verifies FIDO2/SSH commit signatures on a pull request, detects
+  physically-implausible signing cadences, evaluates a per-repository
+  policy, and posts the results back to the PR as a comment.
+author: "TouchSign"
+
+branding:
+  icon: "shield"
+  color: "green"
+
+inputs:
+  base-sha:
+    description: "Base commit SHA of the range to check (exclusive)."
+    required: true
+  head-sha:
+    description: "Head commit SHA of the range to check (inclusive)."
+    required: true
+  policy:
+    description: "Path to the TouchSign policy YAML file, relative to the repository root."
+    required: false
+    default: "policy.yaml"
+  registry:
+    description: "Path to the allowed_signers registry file, relative to the repository root."
+    required: false
+    default: ".touchsign/allowed_signers"
+  min-gap-ms:
+    description: "Minimum plausible milliseconds between two touch-required signatures from the same signer."
+    required: false
+    default: "300"
+  post-comment:
+    description: "Whether to post the report as a comment on the triggering pull request."
+    required: false
+    default: "true"
+  github-token:
+    description: "Token used to post the PR comment. Defaults to the workflow's automatic GITHUB_TOKEN."
+    required: false
+    default: "${{ github.token }}"
+
+outputs:
+  allowed:
+    description: "\"true\" or \"false\" -- whether the PR passed policy evaluation."
+  report-path:
+    description: "Path (inside the workspace) to the JSON report written by touchsign."
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - "check"
+    - "--repo"
+    - "${{ github.workspace }}"
+    - "--base"
+    - "${{ inputs.base-sha }}"
+    - "--head"
+    - "${{ inputs.head-sha }}"
+    - "--policy"
+    - "${{ inputs.policy }}"
+    - "--registry"
+    - "${{ inputs.registry }}"
+    - "--min-gap-ms"
+    - "${{ inputs.min-gap-ms }}"
+    - "--report"
+    - "${{ github.workspace }}/touchsign-report.json"
+    - "--post-comment=${{ inputs.post-comment }}"
+  env:
+    GITHUB_TOKEN: "${{ inputs.github-token }}"
+
+# Example workflow usage (not executed as part of this repository, shown
+# here for documentation purposes):
+#
+# on:
+#   pull_request:
+#     types: [opened, synchronize, reopened]
+#
+# jobs:
+#   touchsign:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#       - uses: ./
+#         with:
+#           base-sha: ${{ github.event.pull_request.base.sha }}
+#           head-sha: ${{ github.event.pull_request.head.sha }}

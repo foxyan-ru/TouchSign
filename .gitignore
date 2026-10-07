@@ -1,0 +1,37 @@
+# Build artifacts
+/bin/
+/dist/
+touchsign
+touchsign.exe
+*.exe
+*.test
+*.out
+
+# Go workspace / module cache leftovers
+go.work
+go.work.sum
+
+# This module intentionally has no go.sum yet (see go.mod comment);
+# once `go mod tidy` is run, go.sum SHOULD be committed and this line
+# removed. Left uncommented for now so an accidental partial lockfile
+# from a local experiment doesn't get committed by mistake.
+go.sum
+
+# Reports produced by `touchsign check` at CI/local run time
+/touchsign-report.json
+/*.report.json
+
+# Local policy/registry overrides used for manual testing
+/local.policy.yaml
+/local.allowed_signers
+
+# Editor / OS cruft
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Env files that might carry GITHUB_TOKEN etc. during local runs
+.env
+.env.local

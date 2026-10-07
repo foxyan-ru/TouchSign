@@ -1,0 +1,52 @@
+# Example TouchSign policy file.
+#
+# Rules are evaluated in order against the set of files a pull request
+# changes. A rule only applies if at least one changed file matches its
+# path_glob; a PR that doesn't touch payments/core/**, for example, is
+# never affected by that rule.
+#
+# path_glob      - matched against repo-relative paths. Supports "**" for
+#                  "any number of path segments", in addition to the
+#                  standard single-segment "*" and "?" wildcards.
+# require_coverage
+#                - fraction (0.0-1.0) of the PR's commits that must carry a
+#                  verified touch-signature for this rule to pass. 1.0
+#                  means every commit in the range must verify; 0.0 means
+#                  this rule imposes no coverage requirement at all.
+# block_on_anomaly
+#                - if true, ANY detected timing anomaly (see
+#                  internal/anomaly) fails this rule outright, regardless
+#                  of coverage. Reserve this for your most sensitive paths.
+
+rules:
+  # Payment-handling code: every commit must be touch-signed, and any
+  # implausible signing cadence blocks the merge outright, no exceptions.
+  - path_glob: "payments/core/**"
+    require_coverage: 1.0
+    block_on_anomaly: true
+
+  # Auth and access-control: same bar as payments, but anomalies are
+  # reported rather than hard-blocking, since this repo's auth team
+  # sometimes does legitimate rapid-fire fixup commits during incident
+  # response and prefers a human reviewer to make the call.
+  - path_glob: "internal/auth/**"
+    require_coverage: 1.0
+    block_on_anomaly: false
+
+  # Infrastructure-as-code: require the majority of commits to be signed,
+  # but don't demand 100% -- automated dependency-bump commits from a bot
+  # account are expected here and aren't touch-signed at all.
+  - path_glob: "infra/**"
+    require_coverage: 0.75
+    block_on_anomaly: false
+
+  # Documentation: no coverage requirement. Anyone can fix a typo without
+  # needing an enrolled hardware key.
+  - path_glob: "docs/**"
+    require_coverage: 0.0
+    block_on_anomaly: false
+
+  # Fallback for everything else in the repository.
+  - path_glob: "**"
+    require_coverage: 0.5
+    block_on_anomaly: false
